@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Корпоративна бібліотека документів</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 Корпоративна бібліотека документів</h1>
+            <p>Централізоване сховище документів підприємства</p>
+        </div>
+
+        <!-- Навігація -->
+        <div class="nav-tabs" id="navTabs">
+            <button class="nav-tab" id="libraryTabButton" onclick="switchTab('library')" title="Бібліотека">📚</button>
+            <button class="nav-tab" id="adminTabButton" onclick="checkAdminAccess()" title="Адміністрування">⚙️</button>
+        </div>
+        <div id="adminLoginIconBtn" style="display:none;" title="Вхід для адміністратора" onclick="checkAdminAccess()">⚙️</div>
+
+        <!-- Вкладка бібліотеки -->
+        <div id="libraryTab" class="tab-content active">
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Пошук документів...">
+                </div>
+                <div class="category-filter">
+                    <select id="categoryFilter">
+                        <option value="">Всі категорії</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="filesContainer" class="files-grid"></div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-state-icon">📁</div>
+                <h3>Бібліотека порожня</h3>
+                <p>Документи ще не додані до бібліотеки</p>
+            </div>
+        </div>
+
+        <!-- Вкладка адміністрування -->
+        <div id="adminTab" class="tab-content">
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" data-tab="admin-documents">Документи</button>
+                <button class="admin-tab-btn" data-tab="admin-categories">Категорії</button>
+                <button class="admin-tab-btn" data-tab="admin-subcategories">Підкатегорії</button>
+            </div>
+            <div id="admin-documents" class="admin-tab-content active">
+                <div class="admin-section">
+                    <div class="admin-header">
+                        <h3>📄 Керування документами</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="add-button" onclick="openAddDocumentModal()">+ Додати документ</button>
+                            <button class="btn" style="background: #dc3545; color: white; padding: 12px 20px; border-radius: 8px;" onclick="adminLogout()">🔓 Вийти з адмін-панелі</button>
+                        </div>
+                    </div>
+                    <div id="adminDocumentsContainer" class="files-grid"></div>
+                </div>
+                <div class="stats-cards">
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalDocuments">0</div>
+                        <div class="stats-label">Всього документів</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalCategories">0</div>
+                        <div class="stats-label">Категорій</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalSubcategories">0</div>
+                        <div class="stats-label">Підкатегорій</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-number" id="documentsThisMonth">0</div>
+                        <div class="stats-label">Цього місяця</div>
+                    </div>
+                </div>
+            </div>
+            <div id="admin-categories" class="admin-tab-content">
+                <div class="admin-section">
+                    <div class="admin-header">
+                        <h3>📂 Керування категоріями</h3>
+                        <button class="add-button" onclick="openAddCategoryModal()">+ Додати категорію</button>
+                    </div>
+                    <div id="categoriesContainer" class="categories-grid"></div>
+                </div>
+            </div>
+            <div id="admin-subcategories" class="admin-tab-content">
+                <div class="admin-section">
+                    <div class="admin-header">
+                        <h3>📁 Керування підкатегоріями</h3>
+                        <button class="add-button" onclick="openAddSubcategoryModal()">+ Додати підкатегорію</button>
+                    </div>
+                    <div id="subcategoriesContainer" class="categories-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно додавання документу -->
+    <div id="addDocumentModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('addDocumentModal')">&times;</button>
+            <h2>📄 Додати новий документ</h2>
+            
+            <div class="drag-drop-zone" id="dragDropZone">
+                <div style="font-size: 48px; margin-bottom: 20px;">☁️</div>
+                <p><strong>Перетягніть файл сюди</strong> або натисніть для вибору</p>
+                <input type="file" id="fileInput" style="display: none;" accept="*/*">
+            </div>
+
+            <form id="addDocumentForm">
+                <div class="form-group">
+                    <label for="documentTitle">Назва документу:</label>
+                    <input type="text" id="documentTitle" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="documentDescription">Опис:</label>
+                    <textarea id="documentDescription" rows="4" placeholder="Короткий опис документу, його призначення..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="documentCategory">Категорія:</label>
+                    <select id="documentCategory" required>
+                        <option value="">Оберіть категорію</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="documentTags">Теги (через кому):</label>
+                    <input type="text" id="documentTags" placeholder="охорона праці, інструкція, безпека">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('addDocumentModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Додати документ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальне вікно авторизації адміністратора -->
+    <div id="adminLoginModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <button class="close-btn" onclick="closeModal('adminLoginModal')">&times;</button>
+            <h2>🔐 Вхід для адміністратора</h2>
+            
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="adminPassword">Пароль адміністратора:</label>
+                    <input type="password" id="adminPassword" required placeholder="Введіть пароль...">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('adminLoginModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Увійти</button>
+                </div>
+            </form>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; font-size: 14px; color: #1565c0;">
+                <strong>Демо-пароль:</strong> admin123
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно редагування документу -->
+    <div id="editDocumentModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('editDocumentModal')">&times;</button>
+            <h2>✏️ Редагувати документ</h2>
+            
+            <form id="editDocumentForm">
+                <input type="hidden" id="editDocumentId">
+                
+                <div class="form-group">
+                    <label for="editDocumentTitle">Назва документу:</label>
+                    <input type="text" id="editDocumentTitle" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editDocumentDescription">Опис:</label>
+                    <textarea id="editDocumentDescription" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editDocumentCategory">Категорія:</label>
+                    <select id="editDocumentCategory" required>
+                        <option value="">Оберіть категорію</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editDocumentTags">Теги (через кому):</label>
+                    <input type="text" id="editDocumentTags">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('editDocumentModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Зберегти зміни</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальне вікно редагування категорії -->
+    <div id="editCategoryModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-btn" onclick="closeModal('editCategoryModal')">&times;</button>
+            <h2>✏️ Редагувати категорію</h2>
+            
+            <form id="editCategoryForm">
+                <input type="hidden" id="editCategoryId">
+                
+                <div class="form-group">
+                    <label for="editCategoryName">Назва категорії:</label>
+                    <input type="text" id="editCategoryName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCategoryDescription">Опис категорії:</label>
+                    <textarea id="editCategoryDescription" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCategoryIcon">Іконка (емодзі):</label>
+                    <input type="text" id="editCategoryIcon" maxlength="2">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('editCategoryModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Зберегти зміни</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="addCategoryModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('addCategoryModal')">&times;</button>
+            <h2>📂 Додати нову категорію</h2>
+            
+            <form id="addCategoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Назва категорії:</label>
+                    <input type="text" id="categoryName" required placeholder="Наприклад: Охорона праці">
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryDescription">Опис категорії:</label>
+                    <textarea id="categoryDescription" rows="3" placeholder="Коротий опис що входить до цієї категорії..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryIcon">Іконка (емодзі):</label>
+                    <input type="text" id="categoryIcon" placeholder="🛡️" maxlength="2">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('addCategoryModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Створити категорію</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальне вікно додавання підкатегорії -->
+    <div id="addSubcategoryModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('addSubcategoryModal')">&times;</button>
+            <h2>📁 Додати нову підкатегорію</h2>
+            
+            <form id="addSubcategoryForm">
+                <div class="form-group">
+                    <label for="subcategoryName">Назва підкатегорії:</label>
+                    <input type="text" id="subcategoryName" required placeholder="Наприклад: Інструкції з ТБ">
+                </div>
+
+                <div class="form-group">
+                    <label for="subcategoryDescription">Опис підкатегорії:</label>
+                    <textarea id="subcategoryDescription" rows="3" placeholder="Короткий опис що входить до цієї підкатегорії..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="subcategoryCategory">Батьківська категорія:</label>
+                    <select id="subcategoryCategory" required>
+                        <option value="">Оберіть категорію</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="subcategoryIcon">Іконка (емодзі):</label>
+                    <input type="text" id="subcategoryIcon" placeholder="📋" maxlength="2">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('addSubcategoryModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Створити підкатегорію</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальне вікно редагування підкатегорії -->
+    <div id="editSubcategoryModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-btn" onclick="closeModal('editSubcategoryModal')">&times;</button>
+            <h2>✏️ Редагувати підкатегорію</h2>
+            
+            <form id="editSubcategoryForm">
+                <input type="hidden" id="editSubcategoryId">
+                
+                <div class="form-group">
+                    <label for="editSubcategoryName">Назва підкатегорії:</label>
+                    <input type="text" id="editSubcategoryName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editSubcategoryDescription">Опис підкатегорії:</label>
+                    <textarea id="editSubcategoryDescription" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editSubcategoryCategory">Батьківська категорія:</label>
+                    <select id="editSubcategoryCategory" required>
+                        <option value="">Оберіть категорію</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editSubcategoryIcon">Іконка (емодзі):</label>
+                    <input type="text" id="editSubcategoryIcon" maxlength="2">
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('editSubcategoryModal')">Скасувати</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(45deg, #1e3c72, #2a5298); color: white;">Зберегти зміни</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
