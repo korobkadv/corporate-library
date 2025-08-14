@@ -31,6 +31,25 @@ import { Edit, Delete, Visibility, Download } from "@mui/icons-material";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import axios from "axios";
+import { API_BASE, buildFileUrl } from "../config";
+import {
+  listCategories,
+  createCategory,
+  updateCategory as apiUpdateCategory,
+  deleteCategory as apiDeleteCategory,
+} from "../api/categories";
+import {
+  listDocuments,
+  uploadDocument as apiUploadDocument,
+  updateDocument as apiUpdateDocument,
+  deleteDocument as apiDeleteDocument,
+} from "../api/documents";
+import {
+  listUsers as apiListUsers,
+  deleteUser as apiDeleteUser,
+} from "../api/users";
+import { getSettings as apiGetSettings } from "../api/settings";
+import { formatFileSize } from "../utils/format";
 import { useAuth } from "../contexts/AuthContext";
 
 const AdminPanel = () => {
@@ -61,7 +80,7 @@ const AdminPanel = () => {
     viewUntil: "",
   });
 
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+  // noop
   const { user } = useAuth();
   const [tab, setTab] = useState(0); // 0 - документи, 1 - категорії, 2 - користувачі
   const [categoriesList, setCategoriesList] = useState([]);
@@ -86,14 +105,14 @@ const AdminPanel = () => {
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/documents?limit=100`);
-      setDocuments(response.data.documents);
+      const data = await listDocuments({ limit: 100 });
+      setDocuments(data.documents);
     } catch (error) {
       console.error("Помилка завантаження документів:", error);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE]);
+  }, []);
 
   useEffect(() => {
     fetchDocuments();
@@ -107,21 +126,21 @@ const AdminPanel = () => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/categories`);
-      setCategoriesList(res.data.categories || []);
+      const cats = await listCategories();
+      setCategoriesList(cats || []);
     } catch (e) {
       console.error(e);
     }
-  }, [API_BASE]);
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/users`);
-      setUsers(res.data.users || []);
+      const list = await apiListUsers();
+      setUsers(list || []);
     } catch (e) {
       console.error(e);
     }
-  }, [API_BASE]);
+  }, []);
 
   useEffect(() => {
     if (tab === 1) fetchCategories();
@@ -132,19 +151,19 @@ const AdminPanel = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/settings`);
+      const st = await apiGetSettings();
       setSettings({
-        site_title: res.data.settings?.site_title || "",
-        header_color: res.data.settings?.header_color || "#1976d2",
-        header_text_color: res.data.settings?.header_text_color || "#ffffff",
-        link_color: res.data.settings?.link_color || "#ffffff",
+        site_title: st?.site_title || "",
+        header_color: st?.header_color || "#1976d2",
+        header_text_color: st?.header_text_color || "#ffffff",
+        link_color: st?.link_color || "#ffffff",
       });
     } catch (e) {
       console.error(e);
     } finally {
       // noop
     }
-  }, [API_BASE]);
+  }, []);
 
   const toDateInput = (value) => {
     if (!value) return "";
@@ -175,7 +194,7 @@ const AdminPanel = () => {
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
-      await axios.put(`${API_BASE}/documents/${selectedDocument.id}`, {
+      await apiUpdateDocument(selectedDocument.id, {
         title: editData.title,
         description: editData.description,
         category_id: editData.category_id || null,
@@ -199,7 +218,7 @@ const AdminPanel = () => {
   const confirmDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`${API_BASE}/documents/${selectedDocument.id}`);
+      await apiDeleteDocument(selectedDocument.id);
       setDeleteDialog(false);
       setSelectedDocument(null);
       fetchDocuments();
@@ -230,19 +249,11 @@ const AdminPanel = () => {
   };
 
   const handleView = (document) => {
-    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    const serverBase = apiUrl.replace(/\/api\/?$/, "");
-    const fileUrl = `${serverBase}/uploads/${document.filename}`;
+    const fileUrl = buildFileUrl(document.filename);
     window.open(fileUrl, "_blank");
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+  // formatFileSize з utils
   const renderViewUntil = (viewUntil) => {
     if (!viewUntil) return null;
     const now = new Date();
@@ -290,9 +301,7 @@ const AdminPanel = () => {
       formData.append("view_until", uploadData.viewUntil);
     }
     try {
-      await axios.post(`${API_BASE}/documents/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await apiUploadDocument(formData);
       setUploadDialog(false);
       setUploadData({
         title: "",
@@ -424,9 +433,7 @@ const AdminPanel = () => {
               variant="contained"
               onClick={async () => {
                 if (!newCategory.name.trim()) return;
-                await axios.post(`${API_BASE}/categories`, {
-                  name: newCategory.name.trim(),
-                });
+                await createCategory({ name: newCategory.name.trim() });
                 setNewCategory({ name: "" });
                 fetchCategories();
               }}
@@ -799,7 +806,7 @@ const AdminPanel = () => {
             variant="contained"
             onClick={async () => {
               if (!categoryEdit.name.trim()) return;
-              await axios.put(`${API_BASE}/categories/${categoryEdit.id}`, {
+              await apiUpdateCategory(categoryEdit.id, {
                 name: categoryEdit.name.trim(),
               });
               setCategoryEdit({ open: false, id: null, name: "" });
@@ -940,13 +947,13 @@ const AdminPanel = () => {
           <Button
             onClick={async () => {
               if (deleteDialog?.type === "category") {
-                await axios.delete(`${API_BASE}/categories/${deleteDialog.id}`);
+                await apiDeleteCategory(deleteDialog.id);
                 setDeleteDialog(false);
                 fetchCategories();
                 return;
               }
               if (deleteDialog?.type === "user") {
-                await axios.delete(`${API_BASE}/users/${deleteDialog.id}`);
+                await apiDeleteUser(deleteDialog.id);
                 setDeleteDialog(false);
                 fetchUsers();
                 return;

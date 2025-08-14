@@ -10,6 +10,7 @@ import {
 import { LibraryBooks, AdminPanelSettings, Logout } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { getSettings as apiGetSettings } from "../api/settings";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -26,12 +27,8 @@ const Navbar = () => {
   });
 
   useEffect(() => {
-    fetch(
-      (process.env.REACT_APP_API_URL || "http://localhost:5000/api") +
-        "/settings"
-    )
-      .then((r) => r.json())
-      .then((data) => setSettings(data.settings || {}))
+    apiGetSettings()
+      .then((st) => setSettings(st || {}))
       .catch(() => {});
   }, []);
 

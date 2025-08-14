@@ -4,20 +4,17 @@ const path = require("path");
 const fs = require("fs-extra");
 const contentDisposition = require("content-disposition");
 const { db } = require("../database");
-const {
-  authMiddleware,
-  adminMiddleware,
-  requireRoles,
-} = require("../middleware/auth");
+const { authMiddleware, requireRoles } = require("../middleware/auth");
+const { UPLOADS_DIR } = require("../config");
+const { decodeToUtf8IfNeeded } = require("../utils/strings");
 
 const router = express.Router();
 
 // Налаштування Multer для завантаження файлів
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dest = path.join(__dirname, "../uploads");
-    fs.ensureDirSync(dest);
-    cb(null, dest);
+    fs.ensureDirSync(UPLOADS_DIR);
+    cb(null, UPLOADS_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -94,19 +91,7 @@ const upload = multer({
   },
 });
 
-// Helper to fix Windows/latin1 filenames to UTF-8
-function decodeToUtf8IfNeeded(name) {
-  if (!name) return name;
-  // Heuristic: presence of typical mojibake chars
-  if (/[ÃÂÐÑ]/.test(name)) {
-    try {
-      return Buffer.from(name, "latin1").toString("utf8");
-    } catch (e) {
-      return name;
-    }
-  }
-  return name;
-}
+// decodeToUtf8IfNeeded moved to utils/strings
 
 // Отримання всіх документів (публічно)
 router.get("/", (req, res) => {
@@ -266,7 +251,7 @@ router.get("/download/:id", (req, res) => {
         return res.status(404).json({ message: "Документ не знайдено" });
       }
 
-      const filePath = path.join(__dirname, "../uploads", document.filename);
+      const filePath = path.join(UPLOADS_DIR, document.filename);
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "Файл не знайдено" });
       }

@@ -1,8 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { db } = require("../database");
-
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const { JWT_SECRET } = require("../config");
 
 const authMiddleware = (req, res, next) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");

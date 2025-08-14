@@ -29,7 +29,10 @@ import {
   VideoFile,
   Description,
 } from "@mui/icons-material";
-import axios from "axios";
+import { buildFileUrl } from "../config";
+import { listCategories } from "../api/categories";
+import { listDocuments, downloadDocument } from "../api/documents";
+import { formatFileSize } from "../utils/format";
 
 const Dashboard = () => {
   const [documents, setDocuments] = useState([]);
@@ -42,7 +45,7 @@ const Dashboard = () => {
   const [previewDoc, setPreviewDoc] = useState(null);
   // Завантаження документів перенесено в адмін-панель
 
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+  // noop
 
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState("");
@@ -56,15 +59,15 @@ const Dashboard = () => {
       params.append("page", page);
       params.append("limit", String(limit));
 
-      const response = await axios.get(`${API_BASE}/documents?${params}`);
-      setDocuments(response.data.documents);
-      setTotalPages(response.data.totalPages);
+      const data = await listDocuments(Object.fromEntries(params));
+      setDocuments(data.documents);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error("Помилка завантаження документів:", error);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, search, categoryId, page, limit]);
+  }, [search, categoryId, page, limit]);
 
   useEffect(() => {
     fetchDocuments();
@@ -73,12 +76,12 @@ const Dashboard = () => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/categories`).then((r) => r.json());
-        if (res.categories) setCategories(res.categories);
+        const cats = await listCategories();
+        if (cats) setCategories(cats);
       } catch {}
     };
     loadCategories();
-  }, [API_BASE]);
+  }, []);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
@@ -92,11 +95,8 @@ const Dashboard = () => {
 
   const handleDownload = async (id, originalName) => {
     try {
-      const response = await axios.get(`${API_BASE}/documents/download/${id}`, {
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = await downloadDocument(id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", originalName);
@@ -110,9 +110,7 @@ const Dashboard = () => {
   };
 
   const handleView = (document) => {
-    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    const serverBase = apiUrl.replace(/\/api\/?$/, "");
-    const fileUrl = `${serverBase}/uploads/${document.filename}`;
+    const fileUrl = buildFileUrl(document.filename);
     window.open(fileUrl, "_blank");
   };
 
@@ -134,13 +132,7 @@ const Dashboard = () => {
     );
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+  // formatFileSize з utils
 
   const renderViewUntil = (viewUntil) => {
     if (!viewUntil) return null;

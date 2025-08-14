@@ -6,6 +6,8 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
+import { API_BASE } from "../config";
+import { loginRequest, registerRequest, profileRequest } from "../api/auth";
 
 const AuthContext = createContext();
 
@@ -21,19 +23,19 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+  const API_BASE_ENV = API_BASE; // eslint-disable-line no-unused-vars
 
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE}/auth/profile`);
-      setUser(response.data.user);
+      const data = await profileRequest();
+      setUser(data.user);
     } catch (error) {
       localStorage.removeItem("token");
       delete axios.defaults.headers.common["Authorization"];
     } finally {
       setLoading(false);
     }
-  }, [API_BASE]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -47,11 +49,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/login`, {
-        email,
-        password,
-      });
-      const { token, user } = response.data;
+      const { token, user } = await loginRequest(email, password);
 
       localStorage.setItem("token", token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -68,12 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const response = await axios.post(`${API_BASE}/auth/register`, {
-        username,
-        email,
-        password,
-      });
-      const { token, user } = response.data;
+      const { token, user } = await registerRequest(username, email, password);
 
       localStorage.setItem("token", token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;

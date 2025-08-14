@@ -4,9 +4,9 @@ const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const fs = require("fs-extra");
+const { PORT, UPLOADS_DIR } = require("./config");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
@@ -22,8 +22,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Створення папок для завантажень
-const uploadsDir = path.join(__dirname, "uploads");
-fs.ensureDirSync(uploadsDir);
+fs.ensureDirSync(UPLOADS_DIR);
 
 // Ініціалізація бази даних (окремий модуль усуває циклічні імпорти)
 require("./database");
@@ -36,7 +35,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/settings", require("./routes/settings"));
 
 // Статичні файли для завантажених документів (публічно)
-app.use("/uploads", express.static(uploadsDir));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 // Для production - обслуговування React додатку
 if (process.env.NODE_ENV === "production") {
