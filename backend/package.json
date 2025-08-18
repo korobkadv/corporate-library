@@ -18,7 +18,8 @@
     "path": "^0.12.7",
     "fs-extra": "^11.1.1",
     "content-disposition": "^0.5.4",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "sanitize-html": "^2.12.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

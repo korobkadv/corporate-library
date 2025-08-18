@@ -12,6 +12,8 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
+import News from "./pages/News";
+import NewsView from "./pages/NewsView";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 const theme = createTheme({
@@ -38,10 +40,12 @@ function AppContent() {
             element={user ? <Navigate to="/dashboard" /> : <Login />}
           />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/news/:id" element={<NewsView />} />
           <Route
             path="/admin"
             element={
-              user?.role === "admin" ? (
+              ["admin", "editor"].includes(user?.role) ? (
                 <AdminPanel />
               ) : (
                 <Navigate to="/login" state={{ from: "/admin" }} replace />

@@ -57,6 +57,15 @@ const Navbar = () => {
             Бібліотека
           </Button>
 
+          <Button
+            color="inherit"
+            onClick={() => navigate("/news")}
+            variant={location.pathname === "/news" ? "outlined" : "text"}
+            sx={{ color: settings.link_color || undefined }}
+          >
+            Новини
+          </Button>
+
           {user?.role === "admin" && (
             <Button
               color="inherit"

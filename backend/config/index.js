@@ -11,9 +11,13 @@ const EFFECTIVE_JWT_SECRET = JWT_SECRET || "dev-insecure-secret-change-me";
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(__dirname, "..", "uploads");
+const NEWS_UPLOADS_DIR = process.env.NEWS_UPLOADS_DIR
+  ? path.resolve(process.env.NEWS_UPLOADS_DIR)
+  : path.join(UPLOADS_DIR, "news");
 
 module.exports = {
   PORT,
   JWT_SECRET: EFFECTIVE_JWT_SECRET,
   UPLOADS_DIR,
+  NEWS_UPLOADS_DIR,
 };

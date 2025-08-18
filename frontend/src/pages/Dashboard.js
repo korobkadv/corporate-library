@@ -31,6 +31,7 @@ import {
 } from "@mui/icons-material";
 import { buildFileUrl } from "../config";
 import { listCategories } from "../api/categories";
+import { listNews } from "../api/news";
 import { listDocuments, downloadDocument } from "../api/documents";
 import { formatFileSize } from "../utils/format";
 
@@ -49,6 +50,7 @@ const Dashboard = () => {
 
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState("");
+  const [latestNews, setLatestNews] = useState([]);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -81,6 +83,13 @@ const Dashboard = () => {
       } catch {}
     };
     loadCategories();
+    const loadNews = async () => {
+      try {
+        const data = await listNews({ page: 1, limit: 3 });
+        setLatestNews(data.news || []);
+      } catch {}
+    };
+    loadNews();
   }, []);
 
   const handleSearch = (e) => {
@@ -173,6 +182,38 @@ const Dashboard = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Останні новини */}
+      {latestNews?.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Останні новини
+          </Typography>
+          <Grid container spacing={2}>
+            {latestNews.map((n) => (
+              <Grid item xs={12} md={4} key={n.id}>
+                <Card
+                  sx={{ height: "100%", cursor: "pointer" }}
+                  onClick={() => window.open(`/news/${n.id}`, "_self")}
+                >
+                  <CardContent>
+                    <Typography variant="subtitle1" noWrap>
+                      {n.title}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                    >
+                      {new Date(n.created_at).toLocaleDateString("uk-UA")}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
       {/* Пошук та фільтри */}
       <Box sx={{ mb: 4 }}>
         <Grid container spacing={2} alignItems="center">

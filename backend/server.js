@@ -4,12 +4,16 @@ const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const fs = require("fs-extra");
-const { PORT, UPLOADS_DIR } = require("./config");
+const { PORT, UPLOADS_DIR, NEWS_UPLOADS_DIR } = require("./config");
 
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 // Обмежуємо CORS для відомих origins
 const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
   .split(",")
@@ -49,6 +53,7 @@ const loginLimiter = rateLimit({
 
 // Створення папок для завантажень
 fs.ensureDirSync(UPLOADS_DIR);
+fs.ensureDirSync(NEWS_UPLOADS_DIR);
 
 // Ініціалізація бази даних (окремий модуль усуває циклічні імпорти)
 require("./database");
@@ -59,20 +64,28 @@ app.use("/api/documents", require("./routes/documents"));
 app.use("/api/categories", require("./routes/categories"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/settings", require("./routes/settings"));
+app.use("/api/news", require("./routes/news"));
+app.use("/api/news-comments", require("./routes/newsComments"));
 
 // Статичні файли для завантажених документів (публічно)
 // Для зменшення ризиків XSS віддаємо SVG як octet-stream через опцію setHeaders
+// Додаємо CORP і COEP, та окремі директиви для SVG
+const staticSetHeaders = (res, filePath) => {
+  // disable sniffing
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (filePath.toLowerCase().endsWith(".svg")) {
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", "attachment");
+  }
+};
+
 app.use(
   "/uploads",
-  express.static(UPLOADS_DIR, {
-    setHeaders: (res, filePath) => {
-      if (filePath.toLowerCase().endsWith(".svg")) {
-        res.setHeader("Content-Type", "application/octet-stream");
-        res.setHeader("X-Content-Type-Options", "nosniff");
-        res.setHeader("Content-Disposition", "attachment");
-      }
-    },
-  })
+  express.static(UPLOADS_DIR, { setHeaders: staticSetHeaders })
+);
+app.use(
+  "/news-uploads",
+  express.static(NEWS_UPLOADS_DIR, { setHeaders: staticSetHeaders })
 );
 
 // Для production - обслуговування React додатку

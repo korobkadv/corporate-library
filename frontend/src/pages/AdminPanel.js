@@ -28,6 +28,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Grid from "@mui/material/Grid";
 import { Edit, Delete, Visibility, Download } from "@mui/icons-material";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import axios from "axios";
@@ -82,7 +84,7 @@ const AdminPanel = () => {
 
   // noop
   const { user } = useAuth();
-  const [tab, setTab] = useState(0); // 0 - документи, 1 - категорії, 2 - користувачі
+  const [tab, setTab] = useState(0); // 0 - документи, 1 - категорії, 2 - користувачі, 3 - налаштування, 4 - новини
   const [categoriesList, setCategoriesList] = useState([]);
   const [newCategory, setNewCategory] = useState({ name: "" });
   const [categoryEdit, setCategoryEdit] = useState({
@@ -101,6 +103,38 @@ const AdminPanel = () => {
   const [settingsSaving, setSettingsSaving] = useState(false);
 
   const categories = categoriesList;
+
+  // NEWS state
+  const [newsList, setNewsList] = useState([]);
+  const [newsDialog, setNewsDialog] = useState(false);
+  const [newsEdit, setNewsEdit] = useState(null);
+  const [newsForm, setNewsForm] = useState({
+    title: "",
+    excerpt: "",
+    content: "",
+    status: "draft",
+    featured: null,
+    attachments: [],
+    attachmentsNames: [],
+  });
+  const [newsLoading, setNewsLoading] = useState(false);
+
+  const loadNews = useCallback(async () => {
+    try {
+      setNewsLoading(true);
+      const res = await axios.get(`${API_BASE}/news/manage`, {
+        params: { page: 1, limit: 50 },
+      });
+      setNewsList(res.data.news || []);
+    } finally {
+      setNewsLoading(false);
+    }
+  }, []);
+
+  // Підвантажуємо новини одразу, щоб коректно показати лічильник у вкладці
+  useEffect(() => {
+    loadNews();
+  }, [loadNews]);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -146,6 +180,7 @@ const AdminPanel = () => {
     if (tab === 1) fetchCategories();
     if (tab === 2) fetchUsers();
     if (tab === 3) fetchSettings();
+    if (tab === 4) loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -332,6 +367,7 @@ const AdminPanel = () => {
         <Tab label="Категорії" />
         <Tab label="Користувачі" />
         <Tab label="Налаштування" />
+        <Tab label={`Новини (${newsList.length})`} />
       </Tabs>
 
       {user?.role && (
@@ -639,6 +675,259 @@ const AdminPanel = () => {
               </Typography>
             )}
           </Box>
+        </Box>
+      )}
+
+      {tab === 4 && (
+        <Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setNewsEdit(null);
+                setNewsForm({
+                  title: "",
+                  excerpt: "",
+                  content: "",
+                  status: "draft",
+                  featured: null,
+                  attachments: [],
+                });
+                setNewsDialog(true);
+              }}
+            >
+              Додати новину
+            </Button>
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Заголовок</TableCell>
+                  <TableCell>Статус</TableCell>
+                  <TableCell>Дата</TableCell>
+                  <TableCell>Дії</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {newsList.map((n) => (
+                  <TableRow key={n.id}>
+                    <TableCell>{n.title}</TableCell>
+                    <TableCell>{n.status || "published"}</TableCell>
+                    <TableCell>
+                      {new Date(n.created_at).toLocaleString("uk-UA")}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => {
+                          setNewsEdit(n);
+                          setNewsForm({
+                            title: n.title,
+                            excerpt: n.excerpt || "",
+                            content: n.content || "",
+                            status: n.status || "published",
+                            featured: null,
+                            attachments: [],
+                          });
+                          setNewsDialog(true);
+                        }}
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={async () => {
+                          await axios.delete(`${API_BASE}/news/${n.id}`);
+                          loadNews();
+                        }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Dialog
+            open={newsDialog}
+            onClose={() => setNewsDialog(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              {newsEdit ? "Редагувати новину" : "Створити новину"}
+            </DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                label="Заголовок"
+                margin="normal"
+                value={newsForm.title}
+                onChange={(e) =>
+                  setNewsForm({ ...newsForm, title: e.target.value })
+                }
+              />
+              <TextField
+                fullWidth
+                label="Короткий опис (excerpt)"
+                margin="normal"
+                value={newsForm.excerpt}
+                onChange={(e) =>
+                  setNewsForm({ ...newsForm, excerpt: e.target.value })
+                }
+              />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Контент
+                </Typography>
+                <ReactQuill
+                  theme="snow"
+                  value={newsForm.content}
+                  onChange={(v) => setNewsForm({ ...newsForm, content: v })}
+                />
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Button component="label" variant="outlined">
+                  Обкладинка (featured)
+                  <input
+                    type="file"
+                    hidden
+                    accept=".jpg,.jpeg,.png,.gif"
+                    onChange={(e) =>
+                      setNewsForm({
+                        ...newsForm,
+                        featured: e.target.files?.[0] || null,
+                      })
+                    }
+                  />
+                </Button>
+                {newsForm.featured && (
+                  <Typography variant="caption" sx={{ ml: 2 }}>
+                    {newsForm.featured.name}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Button component="label" variant="outlined">
+                  Додати вкладення
+                  <input
+                    type="file"
+                    multiple
+                    hidden
+                    onChange={(e) =>
+                      setNewsForm({
+                        ...newsForm,
+                        attachments: Array.from(e.target.files || []),
+                        attachmentsNames: Array.from(e.target.files || []).map(
+                          (f) => f.name.replace(/\.[^.]+$/, "")
+                        ),
+                      })
+                    }
+                  />
+                </Button>
+                {newsForm.attachments?.length > 0 && (
+                  <Typography variant="caption" sx={{ ml: 2 }}>
+                    {newsForm.attachments.length} файл(и)
+                  </Typography>
+                )}
+                {newsForm.attachments?.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    {newsForm.attachments.map((f, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ minWidth: 160 }}
+                          noWrap
+                        >
+                          {f.name}
+                        </Typography>
+                        <TextField
+                          size="small"
+                          label="Назва"
+                          value={newsForm.attachmentsNames[idx] || ""}
+                          onChange={(e) => {
+                            const next = [...newsForm.attachmentsNames];
+                            next[idx] = e.target.value;
+                            setNewsForm({
+                              ...newsForm,
+                              attachmentsNames: next,
+                            });
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Статус</InputLabel>
+                <Select
+                  label="Статус"
+                  value={newsForm.status}
+                  onChange={(e) =>
+                    setNewsForm({ ...newsForm, status: e.target.value })
+                  }
+                >
+                  <MenuItem value="draft">Чернетка</MenuItem>
+                  <MenuItem value="published">Опубліковано</MenuItem>
+                </Select>
+              </FormControl>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setNewsDialog(false)}>Скасувати</Button>
+              <Button
+                variant="contained"
+                disabled={newsLoading}
+                onClick={async () => {
+                  try {
+                    setNewsLoading(true);
+                    const fd = new FormData();
+                    fd.append("title", newsForm.title);
+                    fd.append("excerpt", newsForm.excerpt);
+                    fd.append("content", newsForm.content);
+                    fd.append("status", newsForm.status);
+                    if (newsForm.featured)
+                      fd.append("featured", newsForm.featured);
+                    (newsForm.attachments || []).forEach((f) =>
+                      fd.append("attachments", f)
+                    );
+                    fd.append(
+                      "attachments_names",
+                      JSON.stringify(newsForm.attachmentsNames || [])
+                    );
+                    if (newsEdit) {
+                      fd.append(
+                        "keep_featured",
+                        newsForm.featured ? "false" : "true"
+                      );
+                      await axios.put(`${API_BASE}/news/${newsEdit.id}`, fd);
+                    } else {
+                      await axios.post(`${API_BASE}/news`, fd);
+                    }
+                    setNewsDialog(false);
+                    loadNews();
+                  } finally {
+                    setNewsLoading(false);
+                  }
+                }}
+              >
+                Зберегти
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Box>
       )}
 

@@ -5,3 +5,6 @@ export const getServerBase = () => API_BASE.replace(/\/api\/?$/, "");
 
 export const buildFileUrl = (filename) =>
   `${getServerBase()}/uploads/${filename}`;
+
+export const buildNewsFileUrl = (filename) =>
+  `${getServerBase()}/news-uploads/${filename}`;
