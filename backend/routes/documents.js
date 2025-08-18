@@ -62,7 +62,7 @@ const upload = multer({
       "image/jpg",
       "image/png",
       "image/gif",
-      "image/svg+xml",
+      // SVG вимкнено задля уникнення XSS у спільному origin
 
       // Аудіо
       "audio/mpeg",
@@ -290,7 +290,7 @@ router.delete(
         }
 
         // Видалення файлу
-        const filePath = path.join(__dirname, "../uploads", document.filename);
+        const filePath = path.join(UPLOADS_DIR, document.filename);
         fs.removeSync(filePath);
 
         // Видалення з бази даних

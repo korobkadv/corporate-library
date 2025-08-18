@@ -20,6 +20,13 @@ const authMiddleware = (req, res, next) => {
           return res.status(401).json({ message: "Недійсний токен" });
         }
 
+        // Дозволяємо доступ тільки активним користувачам
+        if (user.status !== "active") {
+          return res
+            .status(403)
+            .json({ message: "Обліковий запис не активований" });
+        }
+
         req.user = user;
         next();
       }

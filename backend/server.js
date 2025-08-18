@@ -10,16 +10,42 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// Обмежуємо CORS для відомих origins
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim());
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Rate limiting
+// Загальний rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 хвилин
+  max: 100, // 100 запитів на IP
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
+
+// Суворіший ліміт на логін
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Забагато спроб входу, спробуйте пізніше" },
+});
 
 // Створення папок для завантажень
 fs.ensureDirSync(UPLOADS_DIR);
@@ -35,7 +61,19 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/settings", require("./routes/settings"));
 
 // Статичні файли для завантажених документів (публічно)
-app.use("/uploads", express.static(UPLOADS_DIR));
+// Для зменшення ризиків XSS віддаємо SVG як octet-stream через опцію setHeaders
+app.use(
+  "/uploads",
+  express.static(UPLOADS_DIR, {
+    setHeaders: (res, filePath) => {
+      if (filePath.toLowerCase().endsWith(".svg")) {
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Content-Disposition", "attachment");
+      }
+    },
+  })
+);
 
 // Для production - обслуговування React додатку
 if (process.env.NODE_ENV === "production") {

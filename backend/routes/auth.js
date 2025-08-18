@@ -6,6 +6,15 @@ const { authMiddleware } = require("../middleware/auth");
 const { JWT_SECRET } = require("../config");
 
 const router = express.Router();
+// застосовуємо суворіший ліміт лише для логіну (встановлений у server.js)
+const rateLimit = require("express-rate-limit");
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Забагато спроб входу, спробуйте пізніше" },
+});
 
 // Реєстрація
 router.post("/register", (req, res) => {
@@ -41,7 +50,7 @@ router.post("/register", (req, res) => {
 });
 
 // Вхід
-router.post("/login", (req, res) => {
+router.post("/login", loginLimiter, (req, res) => {
   const { email, password } = req.body;
 
   db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
