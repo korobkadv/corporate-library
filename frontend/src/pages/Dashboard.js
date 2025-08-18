@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
+import { Helmet } from "react-helmet-async";
 import {
   Search,
   Download,
@@ -182,6 +183,13 @@ const Dashboard = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Helmet>
+        <title>Головна — Корпоративна Бібліотека</title>
+        <meta
+          name="description"
+          content="Пошук та перегляд корпоративних документів і останні новини"
+        />
+      </Helmet>
       {/* Останні новини */}
       {latestNews?.length > 0 && (
         <Box sx={{ mb: 2 }}>

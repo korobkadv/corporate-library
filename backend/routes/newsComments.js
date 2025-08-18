@@ -27,6 +27,13 @@ router.post("/:newsId", authMiddleware, (req, res) => {
     return res.status(400).json({ message: "Порожній коментар" });
   }
 
+  // Вимога підтвердженого email
+  if (!req.user.email_verified_at) {
+    return res
+      .status(403)
+      .json({ message: "Підтвердіть email, щоб залишати коментарі" });
+  }
+
   db.get(
     `SELECT id FROM news WHERE id = ? AND status = 'published'`,
     [newsId],

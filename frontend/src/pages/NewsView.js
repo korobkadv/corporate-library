@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Typography, Box, CardMedia } from "@mui/material";
+import { Helmet } from "react-helmet-async";
 import {
   getNews,
   listComments,
@@ -53,6 +54,10 @@ const NewsView = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Helmet>
+        <title>{item.title} — Корпоративна Бібліотека</title>
+        <meta name="description" content={item.excerpt || item.title} />
+      </Helmet>
       <Typography variant="h4" gutterBottom>
         {item.title}
       </Typography>

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { listNews } from "../api/news";
 import { buildNewsFileUrl } from "../config";
+import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 
 const News = () => {
@@ -36,6 +37,10 @@ const News = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Helmet>
+        <title>Новини — Корпоративна Бібліотека</title>
+        <meta name="description" content="Стрічка новин компанії" />
+      </Helmet>
       <Typography variant="h4" gutterBottom>
         Новини
       </Typography>

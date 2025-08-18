@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { HelmetProvider, Helmet } from "react-helmet-async";
 import CssBaseline from "@mui/material/CssBaseline";
 
 import Navbar from "./components/Navbar";
@@ -62,12 +63,22 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <Helmet>
+        <title>Корпоративна Бібліотека</title>
+        <meta
+          name="description"
+          content="Онлайн бібліотека документів та новин для співробітників"
+        />
+        <meta name="theme-color" content="#1976d2" />
+      </Helmet>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

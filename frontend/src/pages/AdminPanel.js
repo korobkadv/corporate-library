@@ -158,6 +158,12 @@ const AdminPanel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Підвантажуємо користувачів одразу, щоб лічильник у вкладці відображався відразу
+  useEffect(() => {
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchCategories = useCallback(async () => {
     try {
       const cats = await listCategories();
@@ -365,7 +371,17 @@ const AdminPanel = () => {
       <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label={`Документи (${documents.length})`} />
         <Tab label="Категорії" />
-        <Tab label="Користувачі" />
+        <Tab
+          label={`Користувачі${
+            users.length
+              ? ` (${users.length}${
+                  users.some((u) => u.status !== "active")
+                    ? ` / ${users.filter((u) => u.status !== "active").length}`
+                    : ""
+                })`
+              : ""
+          }`}
+        />
         <Tab label="Налаштування" />
         <Tab label={`Новини (${newsList.length})`} />
       </Tabs>

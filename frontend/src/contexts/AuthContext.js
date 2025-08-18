@@ -22,6 +22,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const API_BASE_ENV = API_BASE; // eslint-disable-line no-unused-vars
 
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await profileRequest();
       setUser(data.user);
+      setEmailVerified(Boolean(data.user?.email_verified_at));
     } catch (error) {
       localStorage.removeItem("token");
       delete axios.defaults.headers.common["Authorization"];
@@ -66,13 +68,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const { token, user } = await registerRequest(username, email, password);
-
-      localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      setUser(user);
-
-      return { success: true };
+      await registerRequest(username, email, password);
+      // Не логінимо автоматично, очікуємо активації адміном
+      return {
+        success: true,
+        message:
+          "Обліковий запис створено. Дочекайтесь активації адміном, потім увійдіть.",
+      };
     } catch (error) {
       return {
         success: false,
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
     setUser(null);
+    setEmailVerified(false);
   };
 
   const value = {
@@ -93,6 +96,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     loading,
+    emailVerified,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

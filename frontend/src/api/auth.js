@@ -18,3 +18,8 @@ export async function profileRequest() {
   const res = await apiClient.get(`/auth/profile`);
   return res.data;
 }
+
+export async function verifyEmailRequest(email, code) {
+  const res = await apiClient.post(`/auth/verify-email`, { email, code });
+  return res.data;
+}

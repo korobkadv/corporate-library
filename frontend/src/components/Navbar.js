@@ -13,7 +13,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getSettings as apiGetSettings } from "../api/settings";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, emailVerified } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -86,6 +86,16 @@ const Navbar = () => {
               >
                 {user.username}
               </Typography>
+              {!emailVerified && (
+                <Button
+                  color="inherit"
+                  size="small"
+                  sx={{ color: settings.link_color || undefined }}
+                  onClick={() => navigate("/login")}
+                >
+                  Підтвердити email
+                </Button>
+              )}
               <IconButton color="inherit" onClick={handleLogout}>
                 <Logout />
               </IconButton>
